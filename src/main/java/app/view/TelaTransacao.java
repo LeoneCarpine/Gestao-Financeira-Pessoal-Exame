@@ -8,22 +8,17 @@ import app.model.Usuario;
 import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDate;
-import java.util.List;
-
-import javax.swing.*;
-import java.awt.*;
-import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
 
-class TelaTransacao extends JFrame {
+class TelaTransacao extends JPanel {
     private final Usuario usuario;
     private final TransacaoController transacaoController = new TransacaoController();
     private final CategoriaDAO categoriaDAO = new CategoriaDAO();
 
-    public TelaTransacao(Usuario usuario) {
-        super("Registrar Transação");
+    public TelaTransacao(Usuario usuario, Runnable voltarAoMenu) {
+        super(new BorderLayout(10, 10));
         this.usuario = usuario;
 
         JTextField campoValor = new JTextField();
@@ -37,9 +32,18 @@ class TelaTransacao extends JFrame {
         spinnerData.setEditor(dateEditor);
 
         JButton btnSalvar = new JButton("Salvar");
+        JButton btnCancelar = new JButton("Cancelar");
+        btnCancelar.addActionListener(e -> voltarAoMenu.run());
 
         List<Categoria> categorias = categoriaDAO.listarPorUsuario(usuario);
         categorias.forEach(comboCategoria::addItem);
+        if (categorias.isEmpty()) {
+            btnSalvar.setEnabled(false);
+            comboCategoria.setEnabled(false);
+            JLabel aviso = new JLabel("<html>Cadastre uma categoria no menu <b>Categorias</b><br>antes de registrar uma transação.</html>");
+            aviso.setBorder(BorderFactory.createEmptyBorder(10, 20, 0, 20));
+            add(aviso, BorderLayout.NORTH);
+        }
 
         JPanel panel = new JPanel(new GridLayout(6, 2, 10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
@@ -53,7 +57,7 @@ class TelaTransacao extends JFrame {
         panel.add(comboCategoria);
         panel.add(new JLabel("Data:"));
         panel.add(spinnerData);
-        panel.add(new JLabel());
+        panel.add(btnCancelar);
         panel.add(btnSalvar);
 
         btnSalvar.addActionListener(e -> {
@@ -69,22 +73,24 @@ class TelaTransacao extends JFrame {
                 double valor = Double.parseDouble(valorStr);
                 String tipo = comboTipo.getSelectedItem().toString().toLowerCase();
                 Categoria categoria = (Categoria) comboCategoria.getSelectedItem();
+                spinnerData.commitEdit();
                 Date dataSelecionada = (Date) spinnerData.getValue();
                 LocalDate data = dataSelecionada.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
                 transacaoController.registrarTransacao(valor, descricao, tipo, data, usuario, categoria);
                 JOptionPane.showMessageDialog(this, "Transação registrada com sucesso!");
-                dispose();
+                voltarAoMenu.run();
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(this, "Informe um valor numérico válido.");
+            } catch (IllegalArgumentException ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "Confira os dados", JOptionPane.WARNING_MESSAGE);
+            } catch (java.text.ParseException ex) {
+                JOptionPane.showMessageDialog(this, "Informe uma data válida.");
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Erro ao salvar transação: " + ex.getMessage());
             }
         });
 
-        add(panel);
-        setSize(400, 350);
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        add(panel, BorderLayout.CENTER);
     }
 }

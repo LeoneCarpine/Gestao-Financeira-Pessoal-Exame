@@ -45,11 +45,16 @@ public class TelaLogin extends JFrame {
 
                 try {
                     Usuario usuario = usuarioController.login(email, senha);
-                    JOptionPane.showMessageDialog(null, "Bem-vindo, " + usuario.getNome());
+                    String nome = usuario.getNome();
+                    JOptionPane.showMessageDialog(TelaLogin.this, "Bem-vindo, "
+                            + (nome == null || nome.isBlank() ? usuario.getEmail() : nome));
                     new TelaPrincipal(usuario).setVisible(true);
                     dispose();
+                } catch (IllegalArgumentException ex) {
+                    JOptionPane.showMessageDialog(TelaLogin.this, ex.getMessage(), "Confira os dados", JOptionPane.WARNING_MESSAGE);
                 } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(null, "Login inválido: " + ex.getMessage());
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(TelaLogin.this, "Não foi possível entrar. Tente novamente.", "Erro", JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
@@ -58,10 +63,20 @@ public class TelaLogin extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 String email = campoEmail.getText();
                 String senha = new String(campoSenha.getPassword());
-                String nome = JOptionPane.showInputDialog("Digite seu nome:");
+                String nome = JOptionPane.showInputDialog(TelaLogin.this, "Digite seu nome:");
+                if (nome == null) {
+                    return;
+                }
 
-                usuarioController.cadastrar(nome, email, senha);
-                JOptionPane.showMessageDialog(null, "Usuário cadastrado com sucesso!");
+                try {
+                    usuarioController.cadastrar(nome, email, senha);
+                    JOptionPane.showMessageDialog(TelaLogin.this, "Usuário cadastrado com sucesso!");
+                } catch (IllegalArgumentException ex) {
+                    JOptionPane.showMessageDialog(TelaLogin.this, ex.getMessage(), "Confira os dados", JOptionPane.WARNING_MESSAGE);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(TelaLogin.this, "Não foi possível cadastrar. Tente novamente.", "Erro", JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
 
